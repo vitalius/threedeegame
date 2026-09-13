@@ -171,9 +171,9 @@ const FLOOR_COLOR = [0.22, 0.20, 0.19];
 const CLEAR_COLOR = [0.05, 0.05, 0.07];
 
 // Fixed light, baked into vertex colors at build time.
-const LIGHT = normalize([0.35, 0.8, 0.45]);
-const AMBIENT = 0.75;
-const DIFFUSE = 0.65;
+const LIGHT = [0.35, 0.8, 0.45];
+const AMBIENT = 1.75;
+const DIFFUSE = 1.65;
 
 function litColor(base, n) {
   const d = AMBIENT + DIFFUSE * Math.max(dot(n, LIGHT), 0);
