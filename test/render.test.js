@@ -8,8 +8,9 @@ import { loadGame, GL } from './stub.js';
 
 const near = (a, b) => Math.abs(a - b) < 1e-9;
 
-// Vertex count from the map, not hardcoded; stride is 6 (pos + color).
-const vertCount = (t) => t.buildWorld().length / 6;
+// Vertex counts from the map, not hardcoded; stride is 9 (pos + normal + color).
+const vertCount = (t) => t.buildWorld().length / 9;
+const sphereVerts = (t) => t.buildSphere().length / 9;
 
 // ---- draw sequence ----------------------------------------------------------------
 
@@ -31,16 +32,58 @@ test('clear color matches the fog color', () => {
   assert.deepStrictEqual(calls.clearColor.at(-1), [0.05, 0.05, 0.07, 1]);
 });
 
+test('Space adds one sphere draw after the world draw', () => {
+  const { t, calls, dom } = loadGame();
+  dom.tick(16);
+  dom.press('Space');
+  dom.tick(32);
+  dom.tick(48); // cooldown 0.4 s: still a single projectile
+
+  const w = vertCount(t);
+  const s = sphereVerts(t);
+  assert.deepStrictEqual(calls.draws, [
+    { mode: GL.TRIANGLES, first: 0, count: w },
+    { mode: GL.TRIANGLES, first: 0, count: w },
+    { mode: GL.TRIANGLES, first: 0, count: s },
+    { mode: GL.TRIANGLES, first: 0, count: w },
+    { mode: GL.TRIANGLES, first: 0, count: s },
+  ]);
+});
+
+test('projectile position feeds the point light uniforms', () => {
+  const { t, calls, dom } = loadGame();
+  dom.press('Space');
+  dom.tick(16);
+
+  assert.strictEqual(calls.uniform1i.at(-1), 1);
+
+  // Per frame the shader gets lightPos then lightColor, both 4 * 3 floats.
+  // float32 precision: the uniform is a Float32Array.
+  const f32 = (a, b) => Math.abs(a - b) < 1e-5;
+  const pos = calls.uniform3fv.at(-2);
+  const color = calls.uniform3fv.at(-1);
+  const p = t.projectiles[0];
+  assert.ok(f32(pos[0], p.x));
+  assert.ok(f32(pos[1], p.y));
+  assert.ok(f32(pos[2], p.z));
+  assert.deepStrictEqual(
+    Array.from(color, (v) => Number(v.toFixed(5))),
+    [1.0, 0.8, 0.5, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+});
+
 // ---- world buffer -----------------------------------------------------------------
 
-test('world buffer: one static upload, 6 floats per vertex', () => {
+test('static buffers: world and sphere, 9 floats per vertex', () => {
   const { t, calls, dom } = loadGame();
   dom.tick(16);
 
-  const n = vertCount(t);
-  assert.strictEqual(calls.bufferData.length, 1);
-  assert.strictEqual(calls.bufferData[0].size, n * 6 * 4);
+  const w = vertCount(t);
+  const s = sphereVerts(t);
+  assert.strictEqual(calls.bufferData.length, 2);
+  assert.strictEqual(calls.bufferData[0].size, w * 9 * 4);
   assert.strictEqual(calls.bufferData[0].usage, GL.STATIC_DRAW);
+  assert.strictEqual(calls.bufferData[1].size, s * 9 * 4);
+  assert.strictEqual(calls.bufferData[1].usage, GL.STATIC_DRAW);
 });
 
 // ---- geometry ------------------------------------------------------------------------
@@ -53,9 +96,9 @@ test('floor at y=0, ceiling at y=1, wall face on x=7', () => {
 
   const colorsAt = (x, y, z) => {
     const out = [];
-    for (let i = 0; i < w.length; i += 6) {
+    for (let i = 0; i < w.length; i += 9) {
       if (w[i] === x && w[i + 1] === y && w[i + 2] === z) {
-        out.push([w[i + 3], w[i + 4], w[i + 5]]);
+        out.push([w[i + 6], w[i + 7], w[i + 8]]);
       }
     }
 

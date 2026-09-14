@@ -32,6 +32,8 @@ export function createGLStub({ failLink = false } = {}) {
     bufferSubData: [],
     viewport: [],
     clearColor: [],
+    uniform1i: [],
+    uniform3fv: [],
   };
   let attrCounter = 0;
 
@@ -61,6 +63,10 @@ export function createGLStub({ failLink = false } = {}) {
           return (_x, _y, w, h) => calls.viewport.push({ w, h });
         case 'clearColor':
           return (r, g, b, a) => calls.clearColor.push([r, g, b, a]);
+        case 'uniform1i':
+          return (_loc, v) => calls.uniform1i.push(v);
+        case 'uniform3fv':
+          return (_loc, v) => calls.uniform3fv.push(v);
         case 'createShader':
         case 'createBuffer':
         case 'createProgram':
@@ -131,7 +137,7 @@ export function loadGame(opts = {}) {
   const gameSrc = fs.readFileSync(path.join(ROOT, 'game.js'), 'utf8');
   const expose =
     '\nglobalThis.__t = { isWall, blocked, move, update, render, ' +
-    'buildWorld, cameraMVP, player, keys, canvas };\n';
+    'buildWorld, buildSphere, cameraMVP, player, keys, projectiles, canvas };\n';
 
   const ctx = {
     console,
