@@ -3,6 +3,8 @@
 3D game in TypeScript. Three.js owns the scene, LittleJS owns the 60 Hz loop
 and keyboard input. The sim is DOM-free, so tests run it headless in Node.
 
+Try it live [https://home.cloudmotion.com/threedeegame/](https://home.cloudmotion.com/threedeegame/)
+
 ## Architecture
 
 ```
